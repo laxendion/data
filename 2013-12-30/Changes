@@ -1,0 +1,6 @@
+Revision history for Perl extension Getdouban.
+
+0.01  Sun Dec 15 02:04:06 2013
+	- original version; created by h2xs 1.23 with options
+		-X -A -n Getdouban
+
