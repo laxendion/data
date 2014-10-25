@@ -1,0 +1,1689 @@
+[% USE Koha %] [% USE KohaDates %] [% USE AuthorisedValues %] [% SET TagsShowEnabled = ( ( Koha.Preference( 'TagsEnabled' ) == 1 ) && TagsShowOnDetail ) %] [% SET TagsInputEnabled = ( ( Koha.Preference( 'opacuserlogin' ) == 1 ) && ( Koha.Preference( 'TagsEnabled' ) == 1 ) && TagsInputOnDetail ) %] [% ShowCourseReservesHeader = 0 %] [% IF Koha.Preference( 'UseCourseReserves' ) == 1 %] [% FOREACH ITEM_RESULT IN itemloop %] [% IF ITEM_RESULT.course_reserves %] [% FOREACH r IN ITEM_RESULT.course_reserves %] [% IF r.course.enabled == 'yes' %] [% ShowCourseReservesHeader = 1 %] [% END %] [% END %] [% END %] [% END %] [% END %] [% IF ( using_https ) %] [% SET protocol = "https://" %] [% ELSE %] [% SET protocol = "http://" %] [% END %] [% INCLUDE 'doc-head-open.inc' %][% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha 線上[% END %] 目錄 &rsaquo; 詳情：[% title |html %][% FOREACH subtitl IN subtitle %], [% subtitl.subfield |html %][% END %] [% INCLUDE 'doc-head-close.inc' %] [% IF ( bidi ) %] [% BLOCK cssinclude %]<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/right-to-left.css" />[% END %]
+[% END %]
+[% IF ( OpacStarRatings != 'disable' ) %]
+ [% BLOCK cssinclude %]<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/jquery.rating.css" />[% END %]
+[% END %]
+</head>
+<body id="opac-detail" class="scrollto">
+[% INCLUDE 'masthead.inc' %]
+
+<div class="main">
+ <ul class="breadcrumb">
+ <li><a href="/cgi-bin/koha/opac-main.pl">首頁</a> <span class="divider">&rsaquo;</span></li>
+ <li><a href="#">詳情：[% title |html %][% FOREACH subtitl IN subtitle %], [% subtitl.subfield |html %][% END %]</a></li>
+ </ul>
+
+ <div class="container-fluid">
+ <div class="row-fluid">
+ <div class="span9">
+ <div id="catalogue_detail_biblio" class="maincontent">
+
+ <div id="bookcover">
+ [% IF ( OPACLocalCoverImages ) %]
+ <div title="[% biblionumber |url %]" class="[% biblionumber %]" id="local-thumbnail-preview"></div>
+ [% END %]
+ [% IF ( OPACAmazonCoverImages ) %]
+ [% IF ( OPACurlOpenInNewWindow ) %]
+ <a href="http://www.amazon[% AmazonTld %]/gp/reader/[% normalized_isbn %]/ref=sib_dp_pt/002-7879865-0184864#reader-link" target="_blank">
+ [% ELSE %]
+ <a href="http://www.amazon[% AmazonTld %]/dp/[% normalized_isbn %]">
+ [% END %]
+ [% IF ( using_https ) %]
+ <img alt="封面圖片" src="[% douban_cover %]" border="0" /></a>
+ [% ELSE %]
+ <img alt="封面圖片" src="[% douban_cover %]" border="0" /></a>
+ [% END %]
+ [% END %]
+
+ [% IF ( SyndeticsEnabled && SyndeticsCoverImages ) %]
+ [% IF ( content_identifier_exists ) %]
+ [% IF ( using_https ) %]
+ <img src="https://secure.syndetics.com/index.aspx?isbn=[% normalized_isbn %]/[% SyndeticsCoverImageSize %].GIF&amp;client=[% SyndeticsClientCode %]&amp;type=xw10&amp;upc=[% normalized_upc %]&amp;oclc=[% normalized_oclc %]" alt="" class="thumbnail" />
+ [% ELSE %]
+ <img src="http://www.syndetics.com/index.aspx?isbn=[% normalized_isbn %]/[% SyndeticsCoverImageSize %].GIF&amp;client=[% SyndeticsClientCode %]&amp;type=xw10&amp;upc=[% normalized_upc %]&amp;oclc=[% normalized_oclc %]" alt="" class="thumbnail" />
+ [% END %]
+
+ [% ELSE %]
+ <span class="no-image">無可用的封面</span>
+ [% END %]
+ [% END %]
+
+ [% IF ( GoogleJackets ) %]
+ <div title="[% biblionumber |url %]" class="[% normalized_isbn %]" id="gbs-thumbnail-preview"></div>
+ [% END %]
+ [% IF OpenLibraryCovers %]
+ <div title="[% biblionumber |url %]" class="[% normalized_isbn %]" id="openlibrary-thumbnail-preview"></div>
+ [% END %]
+ [% IF ( BakerTaylorEnabled && normalized_isbn ) %]
+ [% IF ( OPACurlOpenInNewWindow ) %]
+ <a href="https://[% BakerTaylorBookstoreURL |html %][% normalized_isbn %]" target="_blank"><img alt="見 Baker & Taylor" src="[% BakerTaylorImageURL |html %][% normalized_isbn %]" /></a>
+ [% ELSE %]
+ <a href="https://[% BakerTaylorBookstoreURL |html %][% normalized_isbn %]"><img alt="見 Baker & Taylor" src="[% BakerTaylorImageURL |html %][% normalized_isbn %]" /></a>
+ [% END %]
+ [% END %]
+ </div><!-- / #bookcover -->
+
+ <abbr class="unapi-id" title="koha:biblionumber:[% biblionumber %]"><!-- unAPI --></abbr>
+ [% IF ( ocoins ) # COinS / Openurl %]
+ <span class="Z3988" title="[% ocoins %]"></span>
+ [% END %]
+
+ <div id="views">
+ <span class="view"><span id="Normalview">基本檢視</span></span>
+ <span class="view"><a id="MARCview" href="/cgi-bin/koha/opac-MARCdetail.pl?biblionumber=[% biblionumber %]">檢視機讀編目格式</a></span>
+ [% IF ( ISBD ) %]<span class="view"><a id="ISBDview" href="/cgi-bin/koha/opac-ISBDdetail.pl?biblionumber=[% biblionumber %]">檢視國際書目著錄標準</a></span>[% END %]
+ </div>
+ [% IF ( OPACXSLTDetailsDisplay ) %]
+ [% XSLTBloc %]
+ [% ELSE %]
+ <h1 class="title">[% title |html %][% IF ( subtitle ) %] <span class="subtitle">[% FOREACH subtitl IN subtitle %][% subtitl.subfield |html %] [% END %]</span>[% END %]</h1>
+ [% IF ( author ) %]<h5 class="author">著者 <a href="/cgi-bin/koha/opac-search.pl?q=au:[% author |url %]">[% author |html %]</a></h5>[% END %]
+
+ <span class="results_summary">[% UNLESS ( item_level_itypes ) %]
+ [
+ [% IF ( description ) %]
+ [% description %]
+ [% ELSE %]
+ [% itemtype %]
+ [% END %]
+ ] [% END %]
+ [% IF ( unititle ) %], [% unititle %][% END %]
+ </span>
+
+ [% IF ( MARCAUTHORS ) %]
+ <div class="results_summary">
+ <span class="label">其他作者：</span>
+ [% IF OPACPopupAuthorsSearch %]
+ <!-- Author search term selection modal -->
+ <div id="authorSearch" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="authorSearchLabel" aria-hidden="true">
+ <div class="modal-header">
+ <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
+ <h3 id="authorSearchLabel">選擇搜尋的館藏</h3>
+ </div>
+ <div class="modal-body">
+ <input type="checkbox" onchange="checkAll(this, '#authorsList')" /> <b>全部</b>
+ <ul id="authorsList">
+ [% FOREACH MARCAUTHOR IN MARCAUTHORS %]
+ <li>
+ [% IF (MARCAUTHOR.authoritylink) %]
+ <input type="checkbox" name="checkbox"
+                                                                id="author_[% loop.count %]"
+                                                                onclick="makeAuthorRequest()"
+                                                                value="an:[% MARCAUTHOR.authoritylink %]" />
+ [% ELSE %]
+ <input type="checkbox" name="checkbox"
+                                                                id="author_[% loop.count %]"
+                                                                onclick="makeAuthorRequest()"
+                                                                value="au,wrdl:[% FOREACH SUBFIELD IN MARCAUTHOR.MARCAUTHOR_SUBFIELDS_LOOP %][% SUBFIELD.value |url %][% UNLESS (loop.last) %]+[% END %][% END %]" />
+ [% END %]
+ <label for="author_[% loop.count %]">
+ [% FOREACH SUBFIELD IN MARCAUTHOR.MARCAUTHOR_SUBFIELDS_LOOP %]
+ [% SUBFIELD.value %]
+ [% END %]
+ </label>
+ </li>
+ [% END # /FOREACH MARCAUTHORS %]
+ </ul>
+ </div>
+ <div class="modal-footer">
+ <a href="#" class="btn btn-primary">搜尋</a>
+ <a href="#" class="cancel" data-dismiss="modal" aria-hidden="true">取消</a>
+ </div>
+ </div>
+ [% END # /OPACPopupAuthorsSearch %]
+
+ [% FOREACH MARCAUTHOR IN MARCAUTHORS %]
+ [% authorsloop = loop %]
+ [% FOREACH MARCAUTHOR_SUBFIELDS_LOO IN MARCAUTHOR.MARCAUTHOR_SUBFIELDS_LOOP %]
+ [% MARCAUTHOR_SUBFIELDS_LOO.separator %]
+ <a role="button" data-toggle="modal" title="‡[% MARCAUTHOR_SUBFIELDS_LOO.code %] [% MARCAUTHOR_SUBFIELDS_LOO.value %]"
+                                            class="showauthors" data-count="[% authorsloop.count %]"
+                                            href="/cgi-bin/koha/opac-search.pl?q=[% FOREACH link_loo IN MARCAUTHOR_SUBFIELDS_LOO.link_loop %][% link_loo.operator |url %][% link_loo.limit |url %]:[% link_loo.link |url %][% END %]#authorSearch">[% MARCAUTHOR_SUBFIELDS_LOO.value %]</a>
+ [% END %]
+ [% IF (MARCAUTHOR.authoritylink) %]
+ <a class='authlink' href="/cgi-bin/koha/opac-authoritiesdetail.pl?authid=[% MARCAUTHOR.authoritylink %]"><img style="vertical-align:middle" height="15" width="15" src="[% interface %]/[% theme %]/images/filefind.png"></a>
+ [% END %]
+ [% UNLESS ( loop.last ) %]|[% END %]
+ [% END # /FOREACH MARCAUTHORS %]
+ </div>
+ [% END # IF MARCAUTHORS %]
+
+ [% IF ( MARCSERIES ) %]
+ <span class="results_summary series"><span class="label">集叢：</span>
+ [% FOREACH MARCSERIE IN MARCSERIES %]
+ [% FOREACH MARCSERIES_SUBFIELDS_LOO IN MARCSERIE.MARCSERIES_SUBFIELDS_LOOP %]
+ [% IF ( MARCSERIES_SUBFIELDS_LOO.value ) %]
+ <a href="/cgi-bin/koha/opac-search.pl?q=se:[% MARCSERIES_SUBFIELDS_LOO.value |url %]">[% MARCSERIES_SUBFIELDS_LOO.value %]</a>
+ [% END %]
+ [% IF ( MARCSERIES_SUBFIELDS_LOO.volumenum ) %]
+ . [% MARCSERIES_SUBFIELDS_LOO.volumenum %]
+ [% END %]
+ [% END %]
+ [% UNLESS ( loop.last ) %]|[% END %]
+ [% END # / FOREACH MARCSERIES %]
+ </span>
+ [% END # /MARCSERIES %]
+
+ [% IF ( editionstatement ) %]
+ <span class="results_summary edition"><span class="label">版本敘述：</span>[% editionstatement %][% IF ( editionresponsibility ) %]/[% editionresponsibility %][% END %]</span>
+ [% END %]
+ [% IF ( publishercode ) %]
+ <span class="results_summary publisher"><span class="label">出版者：</span>
+ <a href="/cgi-bin/koha/opac-search.pl?q=pb:[% publishercode |url %] ">
+ [% publishercode |html %]
+ </a> [% IF ( place ) %]([% place %])[% END %] [% IF ( publicationyear ) %], [% publicationyear %][% END %]
+ </span>
+ [% END %]
+
+ [% IF ( pages ) %]
+ <span class="results_summary physical"><span class="label">面(頁)數：</span> [% pages %] [% illus %] [% size %]</span>
+ [% END %]
+
+ [% IF ( MARCISBNS ) %]
+ <span class="results_summary isbn"><span class="label">國際標準圖書號碼：</span>[% FOREACH MARCISBN IN MARCISBNS %][% MARCISBN %][% IF ( loop.last ) %].[% ELSE %]; [% END %][% END %]</span>
+ [% ELSE %]
+ [% IF ( normalized_isbn ) %]
+ <span class="results_summary isbn"><span class="label">國際標準圖書號碼：</span>[% normalized_isbn %]</span>
+ [% END %]
+ [% END %]
+
+ [% IF ( issn ) %]
+ <span class="results_summary issn"><span class="label">國際標準叢刊號碼：</span>[% issn %]</span>
+ [% END %]
+
+ [% IF ( collectiontitle ) %]
+ <span class="results_summary collection"><span class="label">館藏：</span>
+ [% collectiontitle %] [% IF ( collectionissn ) %], ISSN [% collectionissn %] [% END %] [% IF ( collectionvolume ) %]; [% collectionvolume %] [% END %] </span>
+ [% END %]
+
+ [% IF ( unititles ) %]
+ <span class="results_summary unititle"><span class="label">劃一題名：</span>
+ [% FOREACH unititle IN unititles %]
+ [% unititle.unititle %] ;
+ [% END %]
+ </span>
+ [% END %]
+
+ [% IF ( MARCSUBJCTS ) %]
+ <div class="results_summary subject">
+ <span class="label">主題：</span>
+
+ [% IF OPACPopupAuthorsSearch %]
+ <!-- Search term selection modal -->
+ <div id="subjectSearch" class="modal hide" tabindex="-1" role="dialog" aria-labelledby="subjectSearchLabel" aria-hidden="true">
+ <div class="modal-header">
+ <button type="button" class="closebtn" data-dismiss="modal" aria-hidden="true">×</button>
+ <h3 id="subjectSearchLabel">選擇搜尋的館藏</h3>
+ </div>
+ <div id="subjectsList" class="modal-body">
+ <input type="checkbox" id="all_subjects" onchange="checkAll(this, '#subjectsList')" />
+ <label for="all_subjects">
+ <b>全部</b>
+ </label>
+ [% FOREACH MARCSUBJCT IN MARCSUBJCTS %]
+ [% subjectsloop = loop %]
+ [% IF MARCSUBJCT.authoritylink %]
+ <ul id="subjectsList[% loop.count %]" data-authid="[% MARCSUBJCT.authoritylink %]">
+ [% ELSE %]
+ <ul id="subjectsList[% loop.count %]">
+ [% END %]
+ [% FOREACH SUBFIELD IN MARCSUBJCT.MARCSUBJECT_SUBFIELDS_LOOP %]
+ <li>
+ <input type="checkbox" onclick="makeSubjectRequest()" name="checkbox" id="subject_[% subjectsloop.count %]_[% loop.count %]" value="su,wrdl:[% SUBFIELD.value |url %]" />
+ <label for="subject_[% subjectsloop.count %]_[% loop.count %]">
+ [% SUBFIELD.value %]
+ </label>
+ </li>
+ [% END %]
+ </ul>
+ [% END %]
+ </div>
+ <div class="modal-footer">
+ <a href="#" id="validSubjectSearch" class="btn btn-primary">搜尋</a>
+ <a href="#" class="cancel" data-dismiss="modal" aria-hidden="true">取消</a>
+ </div>
+ </div>
+ [% END # /OPACPopupAuthorsSearch%]
+
+ [% FOREACH MARCSUBJCT IN MARCSUBJCTS %]
+ [% subjectsloop = loop %]
+ [% FOREACH SUBFIELD IN MARCSUBJCT.MARCSUBJECT_SUBFIELDS_LOOP %]
+ [% SUBFIELD.separator %]
+ <a role="button" data-toggle="modal" title="$[% SUBFIELD.code %] [% SUBFIELD.value %]" href="/cgi-bin/koha/opac-search.pl?q=[% FOREACH link_loo IN SUBFIELD.link_loop %][% link_loo.operator |url %][% link_loo.limit |url %]:[% link_loo.link |url %][% END %]#subjectSearch" onclick="showSubjects(this, [% subjectsloop.count %], [% loop.count %]); return false;">[% SUBFIELD.value %]</a>
+ [% END %]
+ [% IF (MARCSUBJCT.authoritylink) %]
+ <a class="authlink" href="/cgi-bin/koha/opac-authoritiesdetail.pl?authid=[% MARCSUBJCT.authoritylink %]"><img style="vertical-align:middle" height="15" width="15" src="[% interface %]/[% theme %]/images/filefind.png" /></a>
+ [% END %]
+ [% UNLESS ( loop.last ) %] | [% END %]
+ [% END # / FOREACH MARCSUBJCTS %]
+ </div>
+ [% ELSE # /IF MARCSUBJCTS %]
+ [% IF ( subjects ) %]<span class="results_summary"><span class="label">主題：</span> [% FOREACH subject IN subjects %]<a href="/cgi-bin/koha/opac-search.pl?q=su:[% subject.subject |url %]">[% subject.subject %]</a> | [% END %]</span>[% END %]
+ [% END %]
+
+ [% IF ( copyrightdate ) %]
+ <span class="results_summary year"><span class="label">年：</span>[% copyrightdate %]</span>
+ [% END %]
+
+ [% UNLESS ( item_level_itypes ) %]
+ [% IF ( imgeurl ) %]
+ <img src="[% imageurl %]" alt="" />
+ [% END %]
+ <span class="results_summary itemtype"><span class="label">館藏類型 </span>
+ [% IF ( description ) %]
+ [% description %]
+ [% ELSE %]
+ [% itemtype %]
+ [% END %]
+ </span>
+ [% END %]
+
+ [% IF ( MARCURLS ) %]
+ <div class="results_summary online_resources"><span class="label">連續性資源：</span>
+ <ul>
+ [% FOREACH MARCurl IN MARCURLS %]
+ <li>[% IF ( MARCurl.part ) %][% MARCurl.part %]<br />[% END %]
+
+ [% IF ( OPACurlOpenInNewWindow ) %]
+ [% IF trackclicks == 'track' || trackclicks == 'anonymous' %]
+ <a href="/cgi-bin/koha/tracklinks.pl?uri=[% MARCurl.MARCURL |url%]&amp;biblionumber=[% biblionumber | url %]" title="[% MARCurl.MARCURL %]" target="_blank">
+ [% ELSE %]
+ <a href="[% MARCurl.MARCURL %]" title="[% MARCurl.MARCURL %]" target="_blank">
+ [% END %]
+ [% ELSE %]
+ [% IF trackclicks == 'track' || trackclicks == 'anonymous' %]
+ <a href="/cgi-bin/koha/tracklinks.pl?uri=[% MARCurl.MARCURL |url%]&amp;biblionumber=[% biblionumber | url %]" title="[% MARCurl.MARCURL %]">
+ [% ELSE %]
+ <a href="[% MARCurl.MARCURL %]" title="[% MARCurl.MARCURL %]">
+ [% END %]
+ [% END %]
+
+ [% MARCurl.linktext %]</a>
+ [% IF ( MARCurl.notes ) %]
+ <ul>
+ [% FOREACH note IN MARCurl.notes %]
+ <li>[% note.note %]</li>
+ [% END %]
+ </ul>
+ [% END %]
+ </li>
+ [% END # /FOREACH MARCURLS %]
+ </ul>
+ </div>
+ [% END # / IF MARCURLS %]
+ [% END # / IF OPACXSLTDetailsDisplay %]
+
+ [% IF ( AuthorisedValueImages && authorised_value_images ) %]
+ <div class="authorised_value_images">
+ [% FOREACH authorised_value_image IN authorised_value_images %]
+ <img src="[% authorised_value_image.imageurl %]" alt="[% authorised_value_image.label %]" title="[% authorised_value_image.label %]" />
+ [% END %]
+ </div>
+ [% END # / AuthorisedValueImages && authorised_value_images %]
+
+ <!-- This puts the LTFL reviews in, and if TabbedView is not set, puts the remaining content above the Tabs instead of in them -->
+ [% IF ( LibraryThingForLibrariesID ) %]
+ [% UNLESS ( LibraryThingForLibrariesTabbedView ) %]
+ <div class="results_summary"><div id="ltfl_related" class="ltfl"></div></div>
+ <div class="results_summary"><div id="ltfl_similars" class="ltfl"></div></div>
+ <div class="results_summary"><div id="ltfl_tagbrowse" class="ltfl"></div></div>
+ [% END %]
+ <span class="results_summary">
+ <span class="label">來自 LibraryThing.com 的評論：</span>
+ <span style="display: block;" class="ltfl_reviews"></span>
+ </span>
+ [% END # / LibraryThingForLibrariesID %]
+
+ <!--This grabs all of the lists a bib record appears in -->
+ [% IF ( GetShelves ) %]
+ <span class="results_summary lists"><span class="label">列出收錄此館藏的虛擬書架：</span>
+ [% FOREACH GetShelve IN GetShelves %]
+ <a href="/cgi-bin/koha/opac-shelves.pl?viewshelf=[% GetShelve.shelfnumber %]">[% GetShelve.shelfname %]</a>
+ [% IF ( loop.last ) %][% ELSE %]|[% END %]
+ [% END %]
+ </span>
+ [% END # / GetShelves %]
+
+ [% IF ( TagsShowEnabled ) %]
+ <div class="results_summary tags">
+ [% IF ( TagLoop ) %]
+ <span class="label">來自此圖書館的標籤：</span>
+ <ul id="tagslist">
+ [% FOREACH TagLoo IN TagLoop %]
+ <li><a href="/cgi-bin/koha/opac-search.pl?tag=[% TagLoo.term |url %]&amp;q=[% TagLoo.term |url %]">[% TagLoo.term |html %]</a> <span class="weight">([% TagLoo.weight_total %])</span>
+ [% IF ( loop.last ) %][% ELSE %], [% END %]
+ </li>
+ [% END %]
+ </ul>
+ [% ELSE %]
+ <span class="label">來自此圖書館的標籤：</span> <span class="notags">此圖書館未指定標籤給這個題名。</span>
+ [% END %]
+ [% IF ( TagsInputEnabled ) %] <a class="tag_add" id="tag_add[% biblionumber %]" href="#">新增標籤</a> [% END %]
+ </div>
+ [% END # /IF TagsShowEnabled %]
+
+ [% IF ( TagsInputEnabled ) %]
+ <div class="results_summary tagsinput">
+ [% IF ( loggedinusername ) %]
+ <form id="tagform[% biblionumber %]" method="post" action="/cgi-bin/koha/opac-tags.pl" style="display:none;">
+ <label for="newtag[% biblionumber %]">以逗點區隔新標籤：</label>
+ <input name="newtag[% biblionumber %]" id="newtag[% biblionumber %]" maxlength="100" type="text"/>
+ <input value="新增" name="tagbutton" class="btn btn-small tagbutton" title="[% biblionumber %]" type="submit" />
+ <a class="cancel_tag_add" id="cancel[% biblionumber %]" href="#">(完成)</a>
+ </form>
+ <span id="newtag[% biblionumber %]_status" class="tagstatus" style="display:none;">
+ 標籤狀態在此。</span>
+ [% ELSE %]
+ <span id="login4tags">登入才能新增標籤。</span>
+ [% END %]
+ </div>
+ [% END # / IF TagsInputEnabled %]
+
+ [% IF ( SyndeticsEnabled ) %]
+ [% IF ( SyndeticsSeries && SyndeticsSERIES1Exists ) %]
+ <span class="results_summary">
+ <span class="label">集叢資訊：</span>
+ [% IF ( using_https ) %]
+ <a target="_blank" href="https://secure.syndetics.com/ffseries.aspx?isbn=[% normalized_isbn %]&amp;type=series&amp;num=1&amp;client=[% SyndeticsClientCode %][% IF ( normalized_upc ) %]&amp;upc=[% normalized_upc %][% END %][% IF ( normalized_oclc ) %]&amp;oclc=[% normalized_oclc %][% END %]">點選，打開新的視窗</a>
+ [% ELSE %]
+ <a target="_blank" href="http://www.syndetics.com/ffseries.aspx?isbn=[% normalized_isbn %]&amp;type=series&amp;num=1&amp;client=[% SyndeticsClientCode %][% IF ( normalized_upc ) %]&amp;upc=[% normalized_upc %][% END %][% IF ( normalized_oclc ) %]&amp;oclc=[% normalized_oclc %][% END %]">點選，打開新的視窗</a>
+ [% END %]
+ </span>
+ [% END # / IF SyndeticsSeries && SyndeticsSERIES1Exists%]
+ [% IF ( SyndeticsAVPROFILEExists ) %]
+ <span class="results_summary">
+ <span class="label">視聽資料設定檔：</span>
+ [% IF ( using_https ) %]
+ <a target="_blank" href="https://secure.syndetics.com/index.aspx?isbn=[% normalized_isbn %]/avprofile.html&amp;client=[% SyndeticsClientCode %][% IF ( normalized_upc ) %]&amp;upc=[% normalized_upc %][% END %][% IF ( normalized_oclc ) %]&amp;oclc=[% normalized_oclc %][% END %]&amp;type=xw10">點選，打開新的視窗</a>
+ [% ELSE %]
+ <a target="_blank" href="http://www.syndetics.com/index.aspx?isbn=[% normalized_isbn %]/avprofile.html&amp;client=[% SyndeticsClientCode %][% IF ( normalized_upc ) %]&amp;upc=[% normalized_upc %][% END %][% IF ( normalized_oclc ) %]&amp;oclc=[% normalized_oclc %][% END %]&amp;type=xw10">點選，打開新的視窗</a>
+ [% END %]
+ </span>
+ [% END # / IF SyndeticsAVPROFILEExists %]
+
+ [% IF ( SyndeticsFICTIONExists ) %]
+ <span class="results_summary">
+ <span class="label">小說說明：</span>
+ [% IF ( using_https ) %]
+ <a target="_blank" href="https://secure.syndetics.com/index.aspx?isbn=[% normalized_isbn %]/fiction.html&amp;client=[% SyndeticsClientCode %][% IF ( normalized_upc ) %]&amp;upc=[% normalized_upc %][% END %][% IF ( normalized_oclc ) %]&amp;oclc=[% normalized_oclc %][% END %]&amp;type=xw10">點選，打開新的視窗</a>
+ [% ELSE %]
+ <a target="_blank" href="http://www.syndetics.com/index.aspx?isbn=[% normalized_isbn %]/fiction.html&amp;client=[% SyndeticsClientCode %][% IF ( normalized_upc ) %]&amp;upc=[% normalized_upc %][% END %][% IF ( normalized_oclc ) %]&amp;oclc=[% normalized_oclc %][% END %]&amp;type=xw10">點選，打開新的視窗</a>
+ [% END %]
+ </span>
+ [% END # / IF SyndeticsFICTIONExists %]
+
+ [% IF ( SyndeticsAwards && SyndeticsAWARDS1Exists ) %]
+ <span class="results_summary">
+ <span class="label">獲獎：</span>
+ [% IF ( using_https ) %]
+ <a target="_blank" href="https://secure.syndetics.com/ffawards.aspx?isbn=[% normalized_isbn %]&amp;type=awards&amp;client=[% SyndeticsClientCode %][% IF ( normalized_upc ) %]&amp;upc=[% normalized_upc %][% END %][% IF ( normalized_oclc ) %]&amp;oclc=[% normalized_oclc %][% END %]">點選，打開新的視窗</a>
+ [% ELSE %]
+ <a target="_blank" href="http://www.syndetics.com/ffawards.aspx?isbn=[% normalized_isbn %]&amp;type=awards&amp;client=[% SyndeticsClientCode %][% IF ( normalized_upc ) %]&amp;upc=[% normalized_upc %][% END %][% IF ( normalized_oclc ) %]&amp;oclc=[% normalized_oclc %][% END %]">點選，打開新的視窗</a>
+ [% END %]
+ </span>
+ [% END # / IF SyndeticsAwards && SyndeticsAWARDS1Exists %]
+ [% END # / IF SyndeticsEnabled%]
+
+ [% IF ( OpacStarRatings != 'disable' ) %]
+ <form method="post" action="/cgi-bin/koha/opac-ratings.pl">
+ <div class="results_summary ratings">
+
+ [% FOREACH i  IN [ 1 2 3 4 5  ] %]
+ [% IF rating_avg == i && borrowernumber %]
+ <input class="auto-submit-star" type="radio" name="rating"  value="[% i %]"  checked="checked" />
+ [% ELSIF rating_avg == i %]
+ <input class="auto-submit-star" type="radio" name="rating" value="[% i %]" checked="checked" disabled="disabled" />
+ [% ELSIF borrowernumber  %]
+ <input class="auto-submit-star" type="radio" name="rating" value="[% i %]" />
+ [% ELSE   %]
+ <input class="auto-submit-star" type="radio" name="rating" value="[% i %]" disabled="disabled" />
+ [% END %]
+ [% END %]
+
+ <!-- define some hidden vars for ratings -->
+
+ <input  type="hidden" name='biblionumber'  value="[% biblionumber %]" />
+ <input  type="hidden" name='borrowernumber'  value="[% borrowernumber %]" />
+ <input  type="hidden" name='rating_value' id='rating_value' value="[% rating_value %]" />
+ <input  type="hidden" name='rating_total' id='rating_total' value="[% rating_total %]" />
+ <input  type="hidden" name='rating_avg_int' id='rating_avg_int' value="[% rating_avg_int %]" />
+
+ [% UNLESS ( rating_readonly ) %]&nbsp; <input value="評鑑我" name="rate_button" type="submit" />[% END %]&nbsp;
+
+ [% IF ( rating_value ) %]
+ <span id="rating_value_text">您的評分：[% rating_value %]， </span>
+ [% ELSE %]
+ <span id="rating_value_text"></span>
+ [% END %]
+
+ <span id="rating_text">平均評分：[% rating_avg_int %] ([% rating_total %] 票數)</span>
+ </div>
+ </form>
+ [% END # / IF OpacStarRatings != 'disable' %]
+
+ [% IF ( BakerTaylorContentURL ) %]
+ <span class="results_summary">
+ <span class="label">更多的內容：</span>
+ [% IF ( OPACurlOpenInNewWindow ) %]<a href="[% BakerTaylorContentURL |html %]" target="_blank">Content Cafe</a>[% ELSE %]<a href="[% BakerTaylorContentURL |html %]">Content Cafe</a>[% END %]
+ </span>
+ [% END # / IF BakerTaylorContentURL %]
+
+ [% IF ( NovelistSelectProfile ) %]
+ [% IF ( NovelistSelectView == 'above') %]
+ <span class="results_summary">
+ <span class="label">Novelist Select：</span>
+ <div data-novelist-novelistselect=[% normalized_isbn %]></div>
+ </span>
+ [% END %]
+ [% END # / IF NovelistSelectProfile %]
+
+ [% IF ( Babeltheque ) %]
+ <input type="hidden" name="BW_id_isbn" id="BW_id_isbn" value="[% normalized_isbn %]"/>
+ <div id="BW_notes"></div>
+ <div id="BW_critiques"></div>
+ <div id="BW_critiques_pro"></div>
+ <div id="BW_citations"></div>
+ [% END # / IF Babeltheque%]
+
+ </div> <!-- / #catalogue_detail_biblio -->
+
+ <div id="bibliodescriptions" class="toptabs">
+
+ <ul>
+ [% IF ( defaulttab == 'holdings' ) %]
+ <li id="tab_holdings" class="ui-tabs-active">
+ [% ELSE %]
+ <li id="tab_holdings">
+ [% END %]
+ <a href="#holdings">[% IF SeparateHoldings %] [% LoginBranchname %] 預約[% ELSE %]預約[% END %] [% UNLESS too_many_items %] ( [% itemloop.size || 0 %] )[% END %]</a>
+ </li>
+ [% IF (SeparateHoldings) %]
+ <li><a href="#otherholdings">其他預約 ( [% otheritemloop.size || 0 %] )</a></li>
+ [% END %]
+ [% IF ( MARCNOTES || notes || ( SyndeticsEnabled && SyndeticsSummary && SYNDETICS_SUMMARY )) %]
+ <li id="tab_descriptions"> <a href="#descriptions">題名附註</a></li>
+ [% END %]
+ [% IF ( SYNDETICS_TOC ) %]
+ <li id="tab_toc"> <a href="#toc">目次</a></li>
+ [% END %]
+ [% IF ( SyndeticsEnabled ) %]
+ [% IF ( SyndeticsExcerpt && SYNDETICS_EXCERPT ) %]
+ <li id="tab_excerpt"> <a href="#excerpt">摘要</a></li>
+ [% END %]
+ [% IF ( SyndeticsReviews && SYNDETICS_REVIEWS ) %]
+ <li id="tab_reviews"> <a href="#reviews">評論</a></li>
+ <li id="tab_LTFLreviews">
+ [% IF ( using_https ) %]
+ <script src="https://www.librarything.com/forlibraries/widget.js?id=[% LibraryThingForLibrariesID %]" type="text/javascript"></script>
+ <noscript>此頁面含有強化內容，當啟用 JavaScript 或點選 <a href="https://www.librarything.com/forlibraries/noscript.php?id=[% LibraryThingForLibrariesID %]&amp;accessibility=1">這裡</a>.</noscript>
+ [% ELSE %]
+ <script src="http://www.librarything.com/forlibraries/widget.js?id=[% LibraryThingForLibrariesID %]" type="text/javascript"></script>
+ <noscript>此頁面含有強化內容，當啟用 JavaScript 或點選 <a href="http://www.librarything.com/forlibraries/noscript.php?id=[% LibraryThingForLibrariesID %]&amp;accessibility=1">這裡</a>.</noscript>
+ [% END %]
+ </li>
+ [% END %]
+ [% IF ( SyndeticsAuthorNotes && SYNDETICS_ANOTES ) %]
+ <li id="tab_anotes"> <a href="#anotes">關於作者</a></li>
+ [% END %]
+ [% END # / IF SyndeticsEnabled %]
+
+ [% IF ( LibraryThingForLibrariesID && LibraryThingForLibrariesTabbedView ) %]
+ <li id="tab_LFTLSimilarItems"> <a href="#LFTLSimilarItems">相似館藏</a></li>
+ <li id="tab_LTFLTagBrowse"> <a href="#LTFLTagBrowse">瀏覽標籤</a></li>
+ [% END %]
+
+ [% IF ( subscriptionsnumber ) %]
+ [% IF ( defaulttab == 'subscriptions' ) %]<li id="tab_subscriptions" class="ui-tabs-active">[% ELSE %]<li id="tab_subscriptions">[% END %]
+ <a href="#subscriptions">訂閱</a>
+ </li>
+ [% END %]
+
+ [% IF Koha.Preference( 'reviewson' ) == 1 %]
+ <li id="tab_comments"><a href="#comments">評論( [% reviews.size || 0 %] )</a></li>
+ [% END %]
+
+ [% IF ( NovelistSelectProfile ) %]
+ [% IF ( NovelistSelectView == 'tab') %]
+ <li id="tab_NovelistSelect"> <a href="#NovelistSelect">Novelist Select</a></li>
+ [% END %]
+ [% END %]
+
+ [% IF ( OPACFRBRizeEditions && XISBNS ) %]
+ <li id="tab_editions"><a href="#editions">版本</a></li>
+ [% END %]
+
+ [% IF ( serialcollection ) %]
+ [% IF ( defaulttab == 'serialcollection' ) %]<li id="tab_serialcollection" class="ui-tabs-active">[% ELSE %]<li id="tab_serialcollection">[% END %]
+ <a href="#serialcollection">期刊館藏</a>
+ </li>
+ [% END %]
+
+ [% IF ( OPACLocalCoverImages && localimages.size ) %]
+ <li id="tab_images"><a href="#images">照片</a></li>
+ [% END %]
+
+ [% IF ( HTML5MediaEnabled && HTML5MediaSets ) %]
+ <li id="tab_html5media"><a href="#html5media">播放媒體</a></li>
+ [% END %]
+
+ [% IF ( IDreamBooksReviews ) %]
+ <li id='tab_idb_critic_reviews' style="display:none;"><a href='#idb_critic_reviews'>專業評論 ( XXX )</a></li>
+ [% END %]
+ </ul>
+
+ [% IF ( serialcollection ) %]
+ <div id="serialcollection">
+ <table id="serialcollectiont" class="table table-bordered table-striped">
+ <thead>
+ <tr>
+ <th id="serial_library">圖書館</th>
+ <th id="serial_collection">期刊館藏</th>
+ <th id="serial_itemcallnumber">館藏索書號</th>
+ </tr>
+ </thead>
+ <tbody>
+ [% FOREACH serialcollection IN serialcollections %]
+ <tr>
+ <td>[% serialcollection.branch %]</td>
+ <td>[% serialcollection.text %]</td>
+ <td>[% serialcollection.itemcallnumber %]</td>
+ </tr>
+ [% END %]
+ </tbody>
+ </table>
+ </div>
+ [% END # / IF serialcollection %]
+
+
+ <div id="holdings">
+ [% IF too_many_items %]
+ <p>此書目記錄有多個實體館藏([% items_count %])。<a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblionumber %]&amp;viewallitems=1">點選這裡，檢視全部。</a></p>
+ [% ELSIF ( itemloop.size ) %]
+ [% INCLUDE items_table items=itemloop tab="holdings" %]
+
+ [% IF holds_count.defined || priority %]
+ <div id="bib_holds">
+ [% IF holds_count.defined %] 總共預約：[% holds_count %] [% END %] [% IF priority %] [% IF holds_count.defined %] (優先 [% priority %]) [% ELSE %] 總共優先列：[% priority %] [% END %] [% END %] </div>
+ [% END %]
+ [% ELSE %]
+ [% IF ( ALTERNATEHOLDINGS ) %]
+ [% FOREACH ALTERNATEHOLDING IN ALTERNATEHOLDINGS %]
+ <div id="alternateholdings"><span class="holdings_label">預約：</span> [% ALTERNATEHOLDING.holding %]</div>
+ [% END %]
+ [% ELSE %]
+ <div id="noitems">此記錄沒有實體館藏</div>
+ [% END %]
+ [% END # IF itemloop.size %]
+ [% PROCESS 'shelfbrowser.inc' %]
+ [% INCLUDE shelfbrowser tab='holdings' %]
+ <br style="clear:both;" />
+ </div> <!-- / #holdings -->
+
+ [% IF (SeparateHoldings) %]
+ <div id="otherholdings">
+ [% IF (otheritemloop.size) %] [% INCLUDE items_table items=otheritemloop tab="otherholdings" %] [% ELSE %]無其他館藏。[% END %] [% INCLUDE shelfbrowser tab='otherholdings' %] </div>
+ [% END # / SeparateHoldings %]
+
+ [% IF ( MARCNOTES || notes || ( SyndeticsEnabled && SyndeticsSummary && SYNDETICS_SUMMARY )) %]
+ <div id="descriptions">
+ <div class="content_set">
+
+ [% IF ( SyndeticsEnabled && SyndeticsSummary && SYNDETICS_SUMMARY ) %]
+ <h4>來自 Syndetics 的強化描述：</h4>
+ <p>[% SYNDETICS_SUMMARY %]</p>
+ [% END %]
+
+ [% IF ( MARCNOTES ) %]
+ <div id="marcnotes">
+ [% FOREACH MARCNOTE IN MARCNOTES %]
+ <p>[% MARCNOTE.marcnote FILTER html_line_break %]</p>
+ [% END %]
+ </div>
+ [% ELSE %]
+ [% IF ( notes ) %]
+ <p>[% notes %]</p>
+ [% END %]
+ [% END %]
+
+ </div>
+ </div> <!-- / #descriptions -->
+ [% END # / IF MARCNOTES || notes %]
+
+ [% IF ( SyndeticsEnabled ) %]
+ [% IF ( SyndeticsTOC && SYNDETICS_TOC ) %]
+ <div id="toc">
+ <div class="content_set">
+ <h3>Syndetics提供的目次</h3>
+ <ul>
+ [% FOREACH SYNDETICS_TO IN SYNDETICS_TOC %]
+ [% IF ( SYNDETICS_TO.p ) %]
+ <li><b>[% SYNDETICS_TO.l %] [% SYNDETICS_TO.t %]</b>[% IF ( SYNDETICS_TO.p ) %] ([% SYNDETICS_TO.p %])[% END %]</li>
+ [% END %]
+ [% END %]
+ </ul>
+ </div>
+ </div>
+ [% END # / IF SyndeticsTOC && SYNDETICS_TOC %]
+
+ [% IF ( SyndeticsExcerpt && SYNDETICS_EXCERPT ) %]
+ <div id="excerpt">
+ <div class="content_set">
+ <h3>Syndetics 提供的摘要</h3>
+ [% SYNDETICS_EXCERPT %]
+ </div>
+ </div>
+ [% END # / IF SyndeticsExcerpt && SYNDETICS_EXCERPT %]
+
+ [% IF ( SyndeticsReviews && SYNDETICS_REVIEWS ) %]
+ <div id="reviews">
+ <div class="content_set">
+ <h3>Syndetics 提供的評論</h3>
+ [% FOREACH SYNDETICS_REVIEW IN SYNDETICS_REVIEWS %]
+ [% IF ( SYNDETICS_REVIEW.title ) %]
+ <h4>[% SYNDETICS_REVIEW.title %]</h4>
+ [% FOREACH review IN SYNDETICS_REVIEW.reviews %]
+
+ [% IF ( review.content ) %]
+ [% review.content %]
+ [% END %]
+
+ [% END %]
+ [% END %]
+ [% END %]
+ </div>
+ </div>
+ [% END # / IF SyndeticsReviews && SYNDETICS_REVIEWS %]
+
+ [% IF ( SyndeticsAuthorNotes && SYNDETICS_ANOTES ) %]
+ <div id="anotes">
+ <div class="content_set">
+ <h3>Syndetics 提供的著者說明</h3>
+ [% FOREACH SYNDETICS_ANOTE IN SYNDETICS_ANOTES %]
+ [% IF ( SYNDETICS_ANOTE.content ) %]
+ [% SYNDETICS_ANOTE.content %]
+ [% END %]
+ [% END %]
+ </div>
+ </div>
+ [% END # / IF SyndeticsReviews && SYNDETICS_REVIEWS %]
+ [% END # / IF SyndeticsEnabled %]
+
+ [% IF ( NovelistSelectProfile && NovelistSelectView == 'tab') %]
+ <div id="NovelistSelect">
+ <div data-novelist-novelistselect=[% normalized_isbn %]></div>
+ </div>
+ [% END # / IF NovelistSelectProfile && NovelistSelectView == 'tab' %]
+
+ [% IF ( subscriptionsnumber ) %]
+ <div id="subscriptions">
+ <h2>這是期刊</h2>
+ <p>此題名有 [% subscriptionsnumber %] 個相關的訂閱。</p>
+ [% FOREACH subscription IN subscriptions %]
+ [% IF ( subscription.branchname ) %]
+ <h3>在圖書館內：[% subscription.branchname %]</h3>
+ [% ELSE %]
+ [% IF ( subscription.branchcode ) %]
+ <h3>在圖書館內：[% subscription.branchcode %]</h3>
+ [% END %]
+ [% END %]
+ [% IF ( subscription.closed ) %]
+ <p>訂閱已到期。</p>
+ [% END %]
+ <span style="display:none;"> [% IF ( subscription.callnumber ) %]<p>索書號：[% subscription.callnumber %]</p>[% END %]</span>
+ [% IF ( subscription.subscriptionnotes ) %]
+ <p>[% subscription.subscriptionnotes FILTER html_line_break %] </p>
+ [% END %]
+ <p>取得訂閱資訊：[% subscription.histstartdate | $KohaDates %] 至：[% IF ( subscription.histenddate ) %] [% subscription.histenddate | $KohaDates %] [% ELSE %] 現在 (現刊)[% END %]</p>
+ [% IF ( subscription.missinglist ) %]
+ <p>遺失的期號：[% subscription.missinglist %] </p>
+ [% END %]
+ [% IF ( subscription.opacnote ) %]
+ <p>[% subscription.opacnote FILTER html_line_break %]</p>
+ [% END %]
+ [% IF ( subscription.callnumber ) %]
+ <p>索書號：[% subscription.callnumber %]</p>
+ [% END %]
+ [% IF ( subscription.latestserials ) %]
+ <p> 此訂閱 [% subscription.opacdisplaycount %] 的最新一期：</p>
+ <table class="table table-bordered table-striped">
+ <tr>
+ <th>期 #</th>
+ <th>日期</th>
+ <th>狀態</th>
+ <th>說明</th>
+ </tr>
+ [% FOREACH latestserial IN subscription.latestserials %]
+ <tr>
+ <td>[% latestserial.serialseq %]</td>
+ <td>[% latestserial.planneddate %]</td>
+ <td>
+ [% IF ( latestserial.status1 ) %] 待取 [% ELSE %] [% IF ( latestserial.status2 ) %] 到館 [% ELSE %] [% IF ( latestserial.status3 ) %] 最新 [% ELSE %] [% IF ( latestserial.status4 ) %] 遺失 [% ELSE %] [% IF ( latestserial.status5 ) %] 未借出 [% END %] [% END %] [% END %] [% END %] [% END %] </td>
+ <td>[% latestserial.notes %]</td>
+ </tr>
+ [% END # / FOREACH latestserials %]
+ </table>
+ [% END # / IF subscription.latestserials %]
+ [% END # / FOREACH subscriptions %]
+ <p><a href="opac-serial-issues.pl?biblionumber=[% biblionumber %]">更多詳情</a></p>
+ </div> <!-- / #subscriptions -->
+ [% END # IF subscriptionsnumber %]
+
+ [% IF ( LibraryThingForLibrariesID && LibraryThingForLibrariesTabbedView ) %]
+ <!-- Library Thing for Libraries Content -->
+ <div id="LFTLSimilarItems">
+ <div class="content_set">
+ <!-- Uncommenting this span makes the font smaller in the tab for LTFL -->
+ <!-- but breaks Xhtml validation -->
+ <!-- <span class="results_summary">-->
+ <div id="ltfl_related"></div>
+ <div id="ltfl_similars"></div>
+ <!-- </span>-->
+ </div>
+ </div>
+ <div id="LTFLTagBrowse">
+ <div class="content_set">
+ <!-- <span class="results_summary"> -->
+ <div id="ltfl_tagbrowse" class="ltfl"></div>
+ <!-- </span> -->
+ </div>
+ </div>
+ [% END # / IF LibraryThingForLibrariesID && LibraryThingForLibrariesTabbedView %]
+
+ [% IF Koha.Preference( 'reviewson' ) == 1 %]
+ <div id="comments">
+ <div id="newcomment"></div>
+ [% IF ( reviews ) %]
+ [% FOREACH review IN reviews %]
+ [% IF ( review.your_comment ) %]
+ <div class="commentline yours" id="c[% review.reviewid %]">
+ [% IF ( review.avatarurl ) %]
+ <img class="avatar" src="[% review.avatarurl %]" height="80" width="80" alt="" />
+ [% END %]
+ <h5>您的評論</h5>
+ <small>[% review.datereviewed | $KohaDates %]</small>
+ <p>
+ [% FILTER html_break %]
+ [% review.review |html %]
+ [% END %]
+ <a href="#" onclick="Dopop('/cgi-bin/koha/opac-review.pl?biblionumber=[% review.biblionumber %]&amp;reviewid=[% review.reviewid %]');">編輯</a>
+ </p>
+ </div>
+ [% ELSE %]
+ <div class="commentline">
+ [% IF ( ShowReviewer != "none" ) %]
+ [% IF ( review.avatarurl ) %]
+ <img class="avatar" src="[% review.avatarurl %]" height="80" width="80" alt="" />
+ [% END %]
+ [% SWITCH ShowReviewer %]
+ [% CASE 'full' %]
+ <h5> [% review.title %] [% review.firstname %] [% review.surname %] 的評論</h5>
+ [% CASE 'first' %]
+ <h5>[% review.firstname %] 的評論</h5>
+ [% CASE 'surname' %]
+ <h5>[% review.surname %] 的評論</h5>
+ [% CASE 'firstandinitial' %]
+ <h5>[% review.firstname %] [% review.surname|truncate(2,'.') %] 的評論</h5>
+ [% CASE 'username' %]
+ <h5>[% review.userid %] 的評論</h5>
+ [% END %]
+ <small>[% review.datereviewed | $KohaDates %]</small>
+ [% ELSIF ( ShowReviewer == "none") %]
+ <h5>讀者對 [% review.datereviewed | $KohaDates %] 的評論</h5>
+ [% END # / IF ShowReviewer != "none"%]
+ <p>
+ [% FILTER html_break %]
+ [% review.review |html %]
+ [% END %]
+ </p>
+ </div> <!-- / .commentline -->
+ [% END # / IF review.your_comment %]
+ [% END # / FOREACH reviews %]
+ [% ELSE %]
+ <p>此館藏沒有評論</p>
+ [% END # / IF reviews %]
+
+ [% IF ( loggedinusername ) %]
+ [% UNLESS ( loggedincommenter ) %]
+ <div id="addcomment"> <a href="#" onclick="Dopop('/cgi-bin/koha/opac-review.pl?biblionumber=[% biblionumber %]'); return false;">
+ 張貼或編輯對這個館藏的評論。</a></div>
+ [% END %]
+ [% ELSE %]
+ <div id="addcomment"><a href="/cgi-bin/koha/opac-user.pl">以您的帳號登入</a> 張貼評論。</div>
+ [% END # / IF loggedinusername %]
+ </div> <!-- / #comments -->
+ [% END # / IF reviewson %]
+
+ [% IF ( OPACFRBRizeEditions && XISBNS ) %]
+ <div id="editions">
+ <h4>此作品的其他版本</h4>
+ <table class="table table-bordered table-striped">
+ [% FOREACH XISBN IN XISBNS %]
+ <tr>
+ <td>
+ [% IF ( OPACAmazonCoverImages ) %]
+ <img src="http://images.amazon.com/images/P/[% XISBN.normalized_isbn %].01._AA75_PU_PU-5_.jpg" alt="" />
+ [% END %]
+
+ [% IF ( SyndeticsEnabled && SyndeticsCoverImages ) %]
+ [% IF ( XISBN.content_identifier_exists ) %]
+ [% IF ( using_https ) %]
+ <img src="https://secure.syndetics.com/index.aspx?isbn=[% XISBN.browser_normalized_isbn %]/SC.GIF&amp;client=[% SyndeticsClientCode %][% IF ( XISBN.browser_normalized_upc ) %]&amp;upc=[% XISBN.browser_normalized_upc %][% END %][% IF ( XISBN.browser_normalized_oclc ) %]&amp;oclc=[% XISBN.browser_normalized_oclc %][% END %]&amp;type=xw10" alt="" />
+ [% ELSE %]
+ <img src="http://www.syndetics.com/index.aspx?isbn=[% XISBN.browser_normalized_isbn %]/SC.GIF&amp;client=[% SyndeticsClientCode %][% IF ( XISBN.browser_normalized_upc ) %]&amp;upc=[% XISBN.browser_normalized_upc %][% END %][% IF ( XISBN.browser_normalized_oclc ) %]&amp;oclc=[% XISBN.browser_normalized_oclc %][% END %]&amp;type=xw10" alt="" />
+ [% END %]
+ [% ELSE %]
+ <span class="no-image">無可用的封面</span>
+ [% END # / IF  XISBN.content_identifier_exists %]
+ [% END # / IF SyndeticsEnabled && SyndeticsCoverImages %]
+ </td>
+
+ [% UNLESS ( item_level_itypes ) %]
+ <td>[% XISBN.description %]</td>
+ [% END %]
+ <td><a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% XISBN.biblionumber %]">[% XISBN.title |html %]</a>
+ [% IF ( XISBN.author ) %] 作者 [% XISBN.author |html %][% END %] [% IF ( XISBN.copyrightdate ) %] &copy;[% XISBN.copyrightdate %][% END %] [% IF ( XISBN.publishercode ) %] <p>[% XISBN.publishercode |html %]
+ [% IF ( XISBN.place ) %]([% XISBN.place %])[% END %]
+ [% IF ( XISBN.publicationyear ) %], [% XISBN.publicationyear %][% END %]
+ [% IF ( XISBN.pages ) %][% XISBN.pages %] [% XISBN.illus %] [% XISBN.size %][% END %]
+ </p>
+ [% END %]
+ </td>
+ </tr>
+ [% END # / FOREACH XISBNS %]
+ </table>
+ </div> <!-- / #editions -->
+ [% END # / IF OPACFRBRizeEditions && XISBNS %]
+
+ [% IF ( HTML5MediaEnabled ) %]
+ <div id="html5media">
+ <p>
+ <[% HTML5MediaParent %] controls preload=none> [% FOREACH HTML5MediaSet IN HTML5MediaSets %] <[% HTML5MediaSet.child  %] src="[% HTML5MediaSet.srcblock %]"[% HTML5MediaSet.typeblock %] /> [% END %] [[% HTML5MediaParent %] 您的瀏覽器不支援標籤。] </[% HTML5MediaParent %]>
+ </p>
+ </div>
+ [% END # / IF HTML5MediaEnabled %]
+
+ [% IF ( OPACLocalCoverImages && localimages.size ) %]
+ <div id="images">
+ <p>點選圖片，從圖片檢視器瀏覽它</p>
+ [% FOREACH image IN localimages %]
+ [% IF image %]
+ <a class="localimage" href="/cgi-bin/koha/opac-imageviewer.pl?biblionumber=[% biblionumber %]&amp;imagenumber=[% image %]"><img alt="" src="/cgi-bin/koha/opac-image.pl?thumbnail=1&amp;imagenumber=[% image %]" /></a>
+ [% END %]
+ [% END %]
+ </div><!-- / #images -->
+ [% END # / IF OPACLocalCoverImages && localimages.size %]
+
+ [% IF ( IDreamBooksReviews ) %]
+ <div id="idb_critic_reviews">
+ <div id="idb_review_snippets"></div>
+ <span><a id="seemoreidb">更多的評論在iDreamBooks.com</a></span>
+ </div>
+ [% END %]
+ </div> <!-- / #bibliodescriptions -->
+
+ [% IF ( NovelistSelectProfile && NovelistSelectView == 'below' ) %]
+ <div id="NovelistSelect">
+ <h3>Novelist Select</h3>
+ <div data-novelist-novelistselect="[% normalized_isbn %]"></div>
+ </div>
+ [% END %]
+
+ [% IF ( Babeltheque ) %]
+ <div>
+ <div id="BW_etiquettes"></div>
+ <div id="BW_suggestions"></div>
+ </div>
+ <div class="clearfix"></div>
+ <div>
+ <div id="BW_podcasts"></div>
+ </div>
+ <div class="clearfix"></div>
+ <div>
+ <div id="BW_videos"></div>
+ </div>
+ [% END # / IF Babeltheque %]
+ </div> <!-- /.span8 -->
+
+ <div class="span3">
+ <div id="ulactioncontainer">
+
+ [% IF ( OpacBrowseResults && busc ) %]
+ <div class="nav_results">
+ <div class="l_Results">
+ [% IF ( listResults ) %]
+ <a href="#" id="a_listResults" title="顯示頁碼清單([% indexPag %]-[% indexPagEnd %] / [% totalPag %])">瀏覽結果</a>
+ [% ELSE %]
+ <span>瀏覽結果</span>
+ [% END %]
+ </div>
+ <ul class="pg_menu clearfix">
+ <li class="left_results">
+ [% IF ( previousBiblionumber ) %]
+ <a href="opac-detail.pl?biblionumber=[% previousBiblionumber %][% IF ( query_desc && OpacHighlightedWords ) %]&query_desc=[% query_desc |uri %][% END %]" title="見: [% IF ( previousTitle ) %][% previousTitle |html %][% ELSE %]previous biblio[% END %]">&laquo; 上一筆</a>
+ [% ELSE %]
+ <span>上一筆</span>
+ [% END %]
+ </li>
+ <li class="back_results"><a href="opac-search.pl?[% busc |url %]" title="返回搜尋結果清單">返回結果</a></li>
+ <li class="right_results">
+ [% IF ( nextBiblionumber ) %]
+ <a href="opac-detail.pl?biblionumber=[% nextBiblionumber %][% IF ( query_desc && OpacHighlightedWords ) %]&query_desc=[% query_desc |uri %][% END %]" title="見：[% IF ( nextTitle ) %][% nextTitle |html %][% ELSE %]next biblio[% END %]">下一個 &raquo;</a>
+ [% ELSE %]
+ <span>下一個</span>
+ [% END %]
+ </li>
+ </ul>
+ [% IF ( listResults ) %]
+ <div class="results-pagination">
+ <div class="nav_pages">
+ <span class="close_pagination"><a href="#" id="close_pagination">關閉</a></span>
+ <ul id="listResults"></ul>
+ </div>
+ <div class="pagination_list">
+ <ul id="ul_pagination_list"></ul>
+ </div>
+ </div>
+ [% END %]
+ </div>
+ [% END # / IF OpacBrowseResults && busc %]
+
+ [% INCLUDE 'opac-detail-sidebar.inc' %]
+
+ [% IF ( NovelistSelectProfile && NovelistSelectView == 'right') %]
+ <div id="NovelistSelect">
+ <h4>Novelist Select</h4>
+ <div data-novelist-novelistselect=[% normalized_isbn %]></div>
+ </div>
+ [% END %]
+
+ [% IF ( Babeltheque ) %]
+ <div class="babeltheque_adds">
+ <div id="BW_critiques_aj"></div>
+ <div id="BW_citations_aj"></div>
+ </div>
+ [% END %]
+
+ [% IF ( SocialNetworks ) %]
+ <div id="social_networks" class="clearfix">
+ <span>分享</span>
+ <div><a href="http://www.facebook.com/sharer.php?u=[% protocol %][% current_url |url %]&t=[% title |url %]" id="facebook" title="經由臉書分享">Facebook</a></div>
+ <div><a href="http://www.linkedin.com/shareArticle?mini=true&url=[% protocol %][% current_url |url %]&title=[% title |url %]" id="linkedin" title="經由 LinkedIn 分享">LinkedIn</a></div>
+ <div><a href="http://www.delicious.com/save?url=[% protocol %][% current_url |url %]&title=[% title |url %]" id="delicious" title="分享 Delicious 社交書籤">Delicious</a></div>
+ <div><a href="mailto:?subject=[% title |url %]&body=[% title |url %]%20([% protocol %][% current_url |url %])" id="email" title="經由電子郵件分享">電子郵件</a></div>
+ <div><div class="g-plusone" data-size="small" data-count="false"></div></div>
+ <div><a id="twitter" href="https://twitter.com/share" class="twitter-share-button" data-count="none" data-text="[% title %]" data-lang="[% lang %]">Tweet</a></div>
+ </div>
+ [% END %]
+ </div> <!-- / .ulactioncontainer -->
+ </div> <!-- / .span4 -->
+ </div> <!-- / .row-fluid -->
+ <div class="row-fluid">
+ [% IF ( LibraryThingForLibrariesID ) %]
+ [% IF ( using_https ) %]
+ <script src="https://ltfl.librarything.com/forlibraries/widget.js?systype=koha&amp;id=[% LibraryThingForLibrariesID %]" type="text/javascript"></script>
+ <noscript>此頁面含有強化內容，當啟用 JavaScript 或點選 <a href="https://www.librarything.com/forlibraries/noscript.php?id=[% LibraryThingForLibrariesID %]&amp;accessibility=1">這裡</a>.</noscript>
+ [% ELSE %]
+ <script src="http://ltfl.librarything.com/forlibraries/widget.js?systype=koha&amp;id=[% LibraryThingForLibrariesID %]" type="text/javascript"></script>
+ <noscript>此頁面含有強化內容，當啟用 JavaScript 或點選 <a href="http://www.librarything.com/forlibraries/noscript.php?id=
+                [% LibraryThingForLibrariesID %]&amp;accessibility=1">這裡</a>.</noscript>
+ [% END %]
+ [% END %]
+
+ [% IF ( NovelistSelectProfile ) %]
+ <script type="text/javascript" src="https://imageserver.ebscohost.com/novelistselect/ns2init.js"></script>
+ [% END %]
+
+ [% IF ( Babeltheque ) %]
+ <script type="text/javascript" src="[% Babeltheque_url_js %]"></script>
+ [% END %]
+ </div> <!-- / .row-fluid -->
+</div> <!-- / .container-fluid -->
+</div> <!-- / .main -->
+
+[% INCLUDE 'opac-bottom.inc' %]
+
+[%# End of template %]
+
+[% BLOCK items_table %]
+ <table class="holdingst table table-bordered table-striped">
+ <thead>
+ <tr>
+ [% IF ( item_level_itypes ) %]<th id="item_itemtype" class="itype">館藏類型</th>[% END %]
+ <th id="item_location">館藏</th>
+ [% IF ( itemdata_ccode ) %]<th id="item_ccode" class="collection">館藏</th>[% END %]
+ <th id="item_callnumber" class="call_no">索書號</th>
+ [% IF ( itemdata_enumchron ) %]<th id="item_enumchron" class="vol_info">卷期資訊</th>[% END %]
+ [% IF ( itemdata_uri ) %]<th id="item_url" class="url">網址</th>[% END %]
+ [% IF ( itemdata_copynumber ) %]<th id="item_copy" class="copynumber">複本號</th>[% END %]
+ <th id="item_status" class="status">狀態</th>
+ [% IF ( itemdata_itemnotes ) %]<th id="item_notes" class="notes">說明</th>[% END %]
+ <th id="item_datedue" class="date_due">到期日</th>
+ [% IF ( OPACShowBarcode ) %]<th id="item_barcode" class="barcode">條碼</th>[% END %]
+ [% IF holds_count.defined %]
+ <th>館藏預約</th>
+ [% ELSIF show_priority %]
+ <th>館藏預約優先順序</th>
+ [% END %]
+ [% IF ( ShowCourseReservesHeader ) %]<th id="item_coursereserves">指定參考書</th>[% END %]
+ </tr>
+ </thead>
+ <tbody>
+ [% FOREACH ITEM_RESULT IN items %]
+ [% IF ITEM_RESULT.this_branch %]
+ <tr class="highlight-row-detail" vocab="http://schema.org/" typeof="Offer">
+ [% ELSE %]
+ <tr vocab="http://schema.org/" typeof="Offer">
+ [% END %]
+ [% IF ( item_level_itypes ) %]
+ <td class="itype">
+ [% UNLESS ( noItemTypeImages ) %]
+ [% IF ( ITEM_RESULT.imageurl ) %]
+ <img src="[% ITEM_RESULT.imageurl %]" title="[% ITEM_RESULT.description %]" alt="[% ITEM_RESULT.description %]" />
+ [% END %]
+ [% END %]
+ [% ITEM_RESULT.description %]
+ </td>
+ [% END %]
+ <td class="location" property="seller">
+ <link property="itemOffered" href="#record" />
+ <link property="businessFunction" href="http://purl.org/goodrelations/v1#LeaseOut">
+ [% UNLESS ( singleBranchMode ) %]
+ <div class="[% ITEM_RESULT.branch_opac_info ? 'branch-info-tooltip-trigger' : '' %]">
+ [% IF ( ITEM_RESULT.branchurl ) %]
+ <a href="[% ITEM_RESULT.branchurl %]" title="">[% ITEM_RESULT.branchname %]</a>
+ [% ELSE %]
+ <span title="">[% ITEM_RESULT.branchname %]</span>
+ [% END %]
+ <div class="branch-info-tooltip">[% ITEM_RESULT.branch_opac_info %]</div>
+ </div>
+ [% END %]
+ <span class="shelvingloc">[% ITEM_RESULT.location_description %]</span>
+ </td>
+ [% IF ( itemdata_ccode ) %]
+ <td class="collection">[% ITEM_RESULT.ccode %]</td>
+ [% END %]
+ <td class="call_no" property="sku">
+ [% IF ( ITEM_RESULT.itemcallnumber ) %]
+ [% ITEM_RESULT.itemcallnumber %]
+ [% IF ( OPACShelfBrowser ) %]
+ [% IF ( ITEM_RESULT.itemnumber == starting_itemnumber ) %]
+ (<a class="close_shelf" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% ITEM_RESULT.biblionumber %]&amp;shelfbrowse_itemnumber=[% ITEM_RESULT.itemnumber %]#[% tab %]">瀏覽書架</a>)
+ [% ELSE %]
+ (<a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% ITEM_RESULT.biblionumber %]&amp;shelfbrowse_itemnumber=[% ITEM_RESULT.itemnumber %]#[% tab %]">瀏覽書架</a>)
+ [% END %]
+ [% END %]
+ [% END %]
+ </td>
+ [% IF ( itemdata_enumchron ) %]
+ <td class="vol_info">[% ITEM_RESULT.enumchron %]</td>
+ [% END %]
+ [% IF ( itemdata_uri ) %]
+ <td class="url">
+ [% IF ITEM_RESULT.uri %]
+ [% IF trackclicks == 'track' || trackclicks == 'anonymous' %]
+ <a href="/cgi-bin/koha/tracklinks.pl?uri=[% ITEM_RESULT.uri | url %]&amp;biblionumber=[% biblionumber |url %]&amp;itemnumber=[% ITEM_RESULT.itemnumber | url %]" property="url"> 連結資源 </a>
+ [% ELSE %]
+ <a href="[% ITEM_RESULT.uri %]" property="url">[% ITEM_RESULT.uri %]</a>
+ [% END %]
+ [% END %]
+ </td>
+ [% END %]
+ [% IF ( itemdata_copynumber ) %]<td class="copynumber">[% ITEM_RESULT.copynumber %]</td>[% END %]
+ <td class="status">[% INCLUDE 'item-status-schema-org.inc' item = ITEM_RESULT %][% INCLUDE 'item-status.inc' item = ITEM_RESULT %]</td>
+ [% IF ( itemdata_itemnotes ) %]<td class="notes" property="description">[% ITEM_RESULT.itemnotes %]</td>[% END %]
+ <td class="date_due"><span title="[% ITEM_RESULT.datedue %]">[% ITEM_RESULT.datedue | $KohaDates as_due_date => 1 %]</span></td>
+ [% IF ( OPACShowBarcode ) %]<td class="barcode" property="serialNumber">[% ITEM_RESULT.barcode %]</td>[% END %]
+ [% IF holds_count.defined || show_priority %]
+ <td class="holds_count">
+ [% IF holds_count.defined %] [% ITEM_RESULT.holds_count %] [% END %] [% IF ITEM_RESULT.priority %] [% IF holds_count.defined %] (優先 [% ITEM_RESULT.priority %]) [% ELSE %] [% ITEM_RESULT.priority %] [% END %] [% END %] </td>
+ [% END %]
+ [% IF ShowCourseReservesHeader %]
+ <td>
+ [% IF ITEM_RESULT.course_reserves %]
+ [% FOREACH r IN ITEM_RESULT.course_reserves %]
+ <p>
+ <a href="opac-course-details.pl?course_id=[% r.course.course_id %]">
+ [% r.course.course_name %]
+ <!--[% IF r.course.course_number %] [% r.course.course_number %] [% END %]-->
+ [% IF r.course.section %] [% r.course.section %] [% END %]
+ [% IF r.course.term %] [% AuthorisedValues.GetByCode( 'TERM', r.course.term ) %] [% END %]
+ </a>
+ </p>
+ [% END %]
+ [% END %]
+ </td>
+ [% END  # /IF ShowCourseReservesHeader %]
+ </tr>
+ [% END %]
+ </tbody>
+ </table>
+[% END %][%# end of items_table block %]
+
+[% BLOCK jsinclude %]
+[% INCLUDE 'datatables.inc' %]
+[% IF ( SocialNetworks ) %]
+ <script type="text/javascript" src="https://apis.google.com/js/plusone.js">
+    //<![CDATA[
+      {lang: '[% lang %]'}
+    //]]>
+    </script>
+ <script type="text/javascript">!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+[% END %]
+[% IF ( OpacStarRatings != 'disable' ) %]<script type="text/javascript" src="[% interface %]/[% theme %]/lib/jquery/plugins/jquery.rating.js"></script>[% END %]
+
+[% IF ( OpacHighlightedWords ) %]<script type="text/javascript" src="[% interface %]/[% theme %]/lib/jquery/plugins/jquery.highlight-3.js"></script>[% END %]
+
+<script type="text/javascript">
+//<![CDATA[
+
+    [% IF ( OpacBrowseResults && busc ) %]
+        var arrPagination = new Array();
+        var pag_index_ini = [% indexPag %];
+        [% IF ( listResults ) %]
+            [% FOREACH listResult IN listResults %]
+                arrPagination[[% listResult.index %]] = {
+                    url:"[% listResult.url %][% IF ( listResult.url && query_desc && OpacHighlightedWords ) %]&query_desc=[% query_desc |uri %][% END %]",
+                    title:"[% listResult.title|remove('\n')|html %]",
+                    author:"[% listResult.author|html %]",
+                    biblionumber:[% listResult.biblionumber %]
+                };
+           [% END %]
+        [% END %]
+    [% END %]
+
+    [% IF ( OpacHighlightedWords ) %]
+        var q_array = new Array();  // holds search terms if available
+
+        function highlightOff() {
+            $("#catalogue_detail_biblio").removeHighlight();
+            $(".highlight_toggle").toggle();
+        }
+        function highlightOn() {
+            var x;
+            for (x in q_array) {
+                q_array[x] = q_array[x].replace(/\w*:([\w])/, "$1");
+                $(".title").highlight(q_array[x]);
+                $(".author").highlight(q_array[x]);
+                $(".results_summary").highlight(q_array[x]);
+            }
+            $(".highlight_toggle").toggle();
+        }
+    [% END %]
+
+     $(document).ready(function() {
+        $('#bibliodescriptions').tabs();
+        $(".branch-info-tooltip-trigger").tooltip({
+            position: { my: "left+15 center", at: "right center" },
+            show: 50,
+            hide: 50,
+            content: function(){
+                var element = $(this).next("div");
+                return element.html();
+            }
+        });
+[% IF ( TagsInputEnabled && loggedinusername ) %]
+        $(".tag_add").click(function(){
+            var thisid = $(this).attr("id");
+            thisid = thisid.replace("tag_add","");
+            $(this).hide();
+            $("#tagform"+thisid).show();
+            $("#newtag"+thisid).focus();
+            $("#newtag"+thisid+"_status").empty().hide();
+            return false;
+        });
+        $(".cancel_tag_add").click(function(){
+            var thisid = $(this).attr("id");
+            thisid = thisid.replace("cancel","");
+            $("#tagform"+thisid).hide();
+            $("#tag_add"+thisid).show();
+            $("#newtag"+thisid).val("");
+            $("#newtag"+thisid+"_status").empty().hide();
+            return false;
+        });
+        $(".tagbutton").click(function(){
+            var thisid = $(this).attr("title");
+            var tag = $("#newtag"+thisid).val();
+            if (!tag || (tag == "")) {
+                alert(MSG_NO_TAG_SPECIFIED);
+                return false;
+            }
+            KOHA.Tags.add_tag_button(thisid, tag);
+            return false;
+        });
+[% END %]
+
+        $(".holdingst").dataTable($.extend(true, {}, dataTablesDefaults, {
+            "aoColumns": [
+                [% IF ( item_level_itypes ) %]null,[% END %]
+                null,
+                [% IF ( itemdata_ccode ) %]null,[% END %]
+                null,
+                [% IF ( itemdata_enumchron ) %]null,[% END %]
+                [% IF ( itemdata_uri ) %]null,[% END %]
+                [% IF ( itemdata_copynumber ) %]null,[% END %]
+                null,
+                [% IF ( itemdata_itemnotes ) %]null,[% END %]
+                { "sType": "title-string" },
+                [% IF ( OPACShowBarcode ) %]null,[% END %]
+                [% IF holds_count.defined %]
+                    null,
+                [% ELSIF show_priority %]
+                    null,
+                [% END %]
+                [% IF ( ShowCourseReservesHeader ) %]null,[% END %]
+            ]
+        }));
+
+        [% IF ( query_desc ) %][% IF ( OpacHighlightedWords ) %]var query_desc = "[% query_desc |replace("'", "\'") |replace('\n', '\\n') |replace('\r', '\\r') |html %]";
+            q_array = query_desc.split(" ");
+            highlightOn();
+            $("#highlight_toggle_on" ).hide().click(function() {highlightOn() ; return false;});
+            $("#highlight_toggle_off").show().click(function() {highlightOff(); return false;});[% END %][% END %]
+    [% IF ( GoogleJackets ) %]
+        KOHA.Google.GetCoverFromIsbn([% covernewwindow %]);
+    [% END %]
+    [% IF OpenLibraryCovers %]
+        KOHA.OpenLibrary.GetCoverFromIsbn();
+    [% END %]
+    [% IF OPACLocalCoverImages %]
+        KOHA.LocalCover.GetCoverFromBibnumber(true);
+    [% END %]
+    [% IF ( NovelistSelectProfile ) %]
+        novSelect.loadContentForISBN('[% normalized_isbn %]','[% NovelistSelectProfile %]', '[% NovelistSelectPassword %]', function(d){});
+    [% END %]
+
+    [% IF ( OpacBrowseResults && busc ) %]
+        if (arrPagination.length > 0) {
+            renderPagIndexList(pag_index_ini, $("#listResults"));
+        }
+        $("#a_listResults").click(function(e) {
+            if (arrPagination.length > 0) {
+                e.preventDefault();
+                var navigation = $(".results-pagination");
+                if (navigation.css("display") == 'none') {
+                    navigation.show();
+                    var newtitle = $(this).attr('title').replace('Show', 'Hide')
+                    $(this).attr('title',newtitle);
+                    renderPagination(pag_index_ini, arrPagination.length - 1, $("#ul_pagination_list"), false);
+                } else {
+                    navigation.hide();
+                    var newtitle = $(this).attr('title').replace('Hide', 'Show')
+                    $(this).attr('title',newtitle);
+                }
+            }
+        });
+        $("#close_pagination").click(function(e) {
+            e.preventDefault();
+            var navigation = $(".results-pagination");
+            navigation.hide();
+        });
+    [% END %]
+[% IF ( OPACShelfBrowser ) %]
+
+    (function prepareShelfBrowser(){
+
+        $(".main").on("click",".close_shelf",function(e){
+            e.preventDefault();
+            $("#shelfbrowser").toggle();
+        });
+        $(".main").on("click", "#browser_previous a", function(e){
+            e.preventDefault();
+            $.ajax({
+                url: "/cgi-bin/koha/svc/shelfbrowser.pl",
+                type: "POST",
+                data: {
+                    "shelfbrowse_itemnumber": $("#browser_previous a").data( "prev-itemnumber" )
+                },
+                success: function(data){
+                    $("#shelfbrowser").replaceWith(data);
+                    [% IF ( GoogleJackets ) %]
+                      KOHA.Google.GetCoverFromIsbn([% covernewwindow %]);
+                    [% END %]
+                    [% IF OpenLibraryCovers %]
+                      KOHA.OpenLibrary.GetCoverFromIsbn();
+                    [% END %]
+                    [% IF OPACLocalCoverImages %]
+                      KOHA.LocalCover.GetCoverFromBibnumber(true);
+                    [% END %]
+                }
+            });
+        });
+
+        $(".main").on("click", "#browser_next a", function(e){
+            e.preventDefault();
+            $.ajax({
+                  url: "/cgi-bin/koha/svc/shelfbrowser.pl",
+                  type: "POST",
+                  data: {
+                    "shelfbrowse_itemnumber": $("#browser_next a").data( "next-itemnumber" )
+                },
+                success: function(data){
+                    $("#shelfbrowser").replaceWith(data);
+                    [% IF ( GoogleJackets ) %]
+                      KOHA.Google.GetCoverFromIsbn([% covernewwindow %]);
+                    [% END %]
+                    [% IF OpenLibraryCovers %]
+                      KOHA.OpenLibrary.GetCoverFromIsbn();
+                    [% END %]
+                    [% IF OPACLocalCoverImages %]
+                      KOHA.LocalCover.GetCoverFromBibnumber(true);
+                    [% END %]
+                }
+            });
+        });
+    }());
+[% END %]
+[% IF ( OpacStarRatings != 'disable' ) %]
+    // -----------------------------------------------------
+    // star-ratings code
+    // -----------------------------------------------------
+    // hide 'rate' button if javascript enabled
+
+    $('input[name="rate_button"]').remove();
+
+    $(function () {
+      $(".auto-submit-star").rating({
+        callback: function (value, link) {
+
+          // if the new value equals the old value, dont execute callback...
+          // just do nothing!
+          if ($("#rating_value").attr("value") != value) {
+
+            $(function () {
+
+              $.post("/cgi-bin/koha/opac-ratings-ajax.pl", {
+                rating_old_value: $("#rating_value").attr("value"),
+                borrowernumber: "[% borrowernumber %]",
+                biblionumber: "[% biblionumber %]",
+                rating_value: value,
+                auth_error: value
+              }, function (data) {
+
+                if (data.auth_status != 'ok') {
+                  window.alert(_("您的CGI工作快取未更新，請重新載入頁面並再試。"));
+                } else {
+                  $("#rating_value").val(data.rating_value);
+
+                  if (data.rating_value) {
+                    $("#rating_value_text").text(_("您的評分：") + data.rating_value + ", ");
+                  } else {
+                    $("#rating_value_text").text('');
+                  }
+
+                  $("#rating_text").text(_("平均評分：") + data.rating_avg_int + " (" + data.rating_total + ' ' + _("投票") + ")");
+
+                }
+              }, "json");
+            });
+          };
+        }
+      });
+    });
+    // -----------------------------------------------------
+[% END # / IF ( OpacStarRatings != 'disable' )%]
+
+[% IF ( IDreamBooksReviews || IDreamBooksReadometer ) %]
+    var isbn = $(".isbn:last").text().split(" ")[1];
+    if (isbn) {
+        isbn = isbn.replace(/\W*$/, '');
+        isbn = isbn.replace(/-/, '');
+
+        if ($.browser.msie && parseInt($.browser.version, 10) >= 8 && window.XDomainRequest) {
+        // Use Microsoft XDR for IE version 8 or above
+            var xdr = new XDomainRequest();
+            xdr.open("get", "http://idreambooks.com/newbooks/api.json?q="+encodeURIComponent(isbn)+"&key=8bf66516232d1b72f3e47df939653e1e");
+            xdr.onload = function() {
+                json = 'json = '+xdr.responseText; // the string now looks like..  json = { ... };
+                eval(json); // json is now a regular JSON object
+                parseIDBJSON(json); // parse using same function as for jQuery's success event
+            }
+            xdr.send();
+        } else {
+            $.getJSON("http://idreambooks.com/newbooks/api.json?q="+encodeURIComponent(isbn)+"&key=8bf66516232d1b72f3e47df939653e1e", function(json){
+                parseIDBJSON(json);
+            });
+        }
+    }
+[% END # / IDreamBooksReviews || IDreamBooksReadometer%]
+
+});
+    [% IF ( IDreamBooksReviews || IDreamBooksReadometer ) %]
+        function parseIDBJSON( json ) {
+            if(json.total_results > 0 && json.book.rating > 0){
+                var isbn = $(".isbn:last").text().split(" ")[1];
+                isbn = isbn.replace(/-/, '');
+
+                [% IF ( IDreamBooksReadometer ) %]
+                    $(".title").append('<a href="'+json.book.detail_link+'" id="idreambooksreadometer"><img src="http://idreambooks.com/remotereadometer/'+isbn+'.jpg" alt="'+json.book.title+' by '+json.book.author+'" title="Rating based on reviews of '+json.book.title+'"></a>');
+                [% END %]
+
+                [% IF ( IDreamBooksReviews ) %]
+                    //build new tab for critic reviews
+                    $("#tab_idb_critic_reviews a").text($("#tab_idb_critic_reviews a").text().replace('XXX', json.book.review_count));
+
+                    //append happy-sad cloud review
+
+                    $("#catalogue_detail_biblio").append("<span class='idreambookssummary results_summary'><a href='"+json.book.detail_link+"'><img src='"+json.book.to_read_or_not_small+"' alt='"+json.book.title+" by "+json.book.author+"' title='Rating based on reviews of "+json.book.title+"'>"+json.book.rating+"%</a> <a href='http://www.idreambooks.com/'>rating based on reviews at iDreamBooks.com</a></span>");
+
+                    //insert data into Book reviews tab
+                    $.each(json.book.critic_reviews, function(){
+                            $("#idb_review_snippets").append("<div class='review'><div><a href='"+this.review_link+"'>"+this.source+"</a></div><div>\"..."+this.snippet+"...\"</div><div>Review date: "+this.review_date+"</div><div><a class='reviewlink' href='"+json.book.detail_link+"'>Review result: "+this.pos_or_neg+" <img src='"+this.smiley_or_sad_small+"' alt='iDreamBooks.com rating' title='"+this.pos_or_neg+"' /></a></div></div>");
+                            });
+                    $("#seemoreidb").attr('href', json.book.detail_link);
+                    $("#tab_idb_critic_reviews").show();
+                [% END %]
+            }
+        }
+    [% END # / IF IDreamBooksReviews || IDreamBooksReadometer %]
+
+    [% IF ( OpacBrowseResults && busc ) %]
+        var timeoutRFW;
+        var totalPagItemList = 10;
+
+        function rewindList()
+        {
+            var ul = $("#listResults");
+            var li_ini = ul.children(':first').next();
+            var index_ini = pag_index_ini;
+            if (li_ini) {
+                index_ini = parseInt(li_ini.attr("class").substring(7), 10);
+            }
+            var li_end = ul.children(':last').prev();
+            var index_end = arrPagination.length - 1;
+            if (li_end) {
+                index_end = parseInt(li_end.attr("class").substring(7), 10);
+            }
+            if (index_ini > pag_index_ini) {
+                renderPagIndexList(index_ini - 1, ul, false);
+                renderPagination(index_ini - 1, arrPagination.length - 1, $("#ul_pagination_list"), true);
+            }
+        }//rewindList
+
+        function forwardList()
+        {
+            var ul = $("#listResults");
+            var li_ini = ul.children(':first').next();
+            var index_ini = pag_index_ini;
+            if (li_ini) {
+                index_ini = parseInt(li_ini.attr("class").substring(7), 10);
+            }
+            var li_end = ul.children(':last').prev();
+            var index_end = arrPagination.length - 1;
+            if (li_end) {
+                index_end = parseInt(li_end.attr("class").substring(7), 10);
+            }
+            if (index_end < arrPagination.length - 1) {
+                renderPagIndexList(index_ini + 1, ul, false);
+                renderPagination(index_ini + 1, arrPagination.length - 1, $("#ul_pagination_list"), true);
+            }
+        }//forwardList
+
+        function renderPagIndexList(index, ul)
+        {
+            var $kids = ul.children("li");
+            if ($kids.length > 0) {
+                $kids.each(function() {
+                    $(this).remove();
+                });
+            }
+            var li;
+            var html = "";
+            var ini = index - 1;
+            var end = ini + totalPagItemList - 1;
+            li = $("<li />");
+            html = (index > pag_index_ini)?"<a href='#' id='rew_list_index' onclick='rewindList()' title='" + _("點選，將清單復原至") + " " + ini + " - " + end + "'>&laquo;</a>":"&laquo;";
+            li.html(html);
+            ul.append(li);
+            var title = "";
+            for (var i=index; i < arrPagination.length && i < index + totalPagItemList; i++) {
+                if (arrPagination[i] == undefined) continue;
+                var li = $("<li />");
+                if (arrPagination[i].url != "") {
+                    title = _("見書目") + " &quot;" + arrPagination[i].title + "&quot; ";
+                    if (arrPagination[i].author != "") title += " " + _("著者") + "&quot;" + arrPagination[i].author + "&quot;";
+                    title += " " + _("包括biblionumber") + " " + arrPagination[i].biblionumber;
+                    html = "<a href='" + arrPagination[i].url + "' title='" + title + "' class='a_pag' id='a_pag_" + i + "'";
+                    html += " onmouseover='renderPagination(" + i + ", " + (arrPagination.length - 1) + ", $(\"#ul_pagination_list\"), true)'";
+                    html += ">" + i + "</a>";
+                } else html = i;
+                li.html(html);
+                li.attr("class", "li_pag_" + i);
+                ul.append(li);
+            }
+            li = $("<li />");
+            ini = index + 1;
+            end = (arrPagination.length > index + totalPagItemList)?index + totalPagItemList:arrPagination.length - 1;
+            html = (end <= arrPagination.length - 1 && (end - index) >= totalPagItemList)?"<a href='#' id='fw_list_index' onclick='forwardList()' title='" + _("點選，新增到借出籃") + " " + ini + " - " + end + "'>&raquo;</a>":"&raquo;";
+            li.html(html);
+            ul.append(li);
+        }//renderPagIndexList
+
+
+        function renderPagination(index, total, ul, highlIndex)
+        {
+            for (var i = pag_index_ini; i <= total; i++) {
+                if (arrPagination[i] == undefined || arrPagination[i].url == "") continue;
+                $("#li_pag_" + i).remove();
+            }
+            var j = 0;
+            for (var i = index; i <= total && j < totalPagItemList; i++) {
+                if (arrPagination[i] == undefined || arrPagination[i].url == "") continue;
+                var li = $("<li id='li_pag_" + i + "' " + ((j % 2 == 0)?"class='highlight'":"")  + " title='" + _("聯絡詳情") + "' />");
+                var html = "<span class='li_pag_index'>" + i + "</span><a href='" + arrPagination[i].url + "'>" + arrPagination[i].title + "</a>";
+                if (arrPagination[i].author) html += "<br /> by " + arrPagination[i].author;
+                li.html(html);
+                if (highlIndex && i == index) li.css("backgroundColor", "#DDDDDD");
+                ul.append(li);
+                j++;
+            }
+            for (i = pag_index_ini; i < index && j < totalPagItemList; i++) {
+                if (arrPagination[i] == undefined || arrPagination[i].url == "") continue;
+                $("#li_pag_" + i).remove();
+                var li = $("<li id='li_pag_" + i + "' " + ((j % 2 == 0)?"class='highlight'":"")  + " title='" + _("聯絡詳情") + "' />");
+                var html = "<span class='li_pag_index'>" + i + "</span><a href='" + arrPagination[i].url + "'>" + arrPagination[i].title + "</a>";
+                if (arrPagination[i].author) html += "<br /> " + _("著者") + " " + arrPagination[i].author;
+                li.html(html);
+                ul.append(li);
+                j++;
+            }
+        }//renderPagination
+    [% END # / IF ( OpacBrowseResults && busc ) %]
+//]]>
+</script>
+
+[% IF OPACPopupAuthorsSearch %]
+ <script type="text/javascript">
+    //<![CDATA[
+        function showAuthors(element){
+            var authornumber = $(element).attr("data-count");
+            // Hide subjects menu if displayed
+            hideMenu(".subjectSearch");
+
+            // Check checkbox related to the clicked link
+            $("#authorsList input[type='checkbox']").attr('checked', false);
+            $("#author_"+authornumber).attr('checked', true);
+
+            makeAuthorRequest();
+
+            // Display menu
+            var left = element.offsetLeft || 0;
+            var top = element.offsetTop || 0;
+            $('.authorSearch').css('display', 'block');
+            $('.authorSearch').css('left', left);
+            $('.authorSearch').css('top', top + 15);
+        }
+
+        function hideMenu(elem) {
+            $(elem).css('display', 'none');
+        }
+
+        function checkAll(checkbox, elem) {
+            var check = $(checkbox).attr('checked') ? true : false;
+            $(elem).find("input[type='checkbox']").attr('checked', check);
+            elem == "#authorsList" ? makeAuthorRequest() : makeSubjectRequest();
+        }
+
+        function makeAuthorRequest(){
+            var values = [];
+
+            $("#authorsList").find("input[type='checkbox']:checked").each(function () {
+                values.push($(this).val());
+            });
+
+            if (values.length > 0) {
+                var request = "/cgi-bin/koha/opac-search.pl?q=" + values.join(' and ');
+                $("#validAuthorSearch").attr("href", request);
+            } else {
+                $("#validAuthorSearch").removeAttr("href");
+            }
+
+        }
+
+        //Subjects
+        function showSubjects(element, subjectnumber, subfieldnumber){
+
+            // Check checkbox related to the clicked link
+            $("#subjectsList input[type='checkbox']").attr('checked', false);
+            $("#subject_"+subjectnumber+"_"+subfieldnumber).attr('checked', true);
+
+            makeSubjectRequest();
+
+        }
+
+        function makeSubjectRequest() {
+            var values = [];
+            $("#subjectsList > ul").each(function() {
+                var all_checked = true;
+                var local_values = [];
+                $(this).find('input[type="checkbox"]').each(function() {
+                    if($(this).attr('checked')) {
+                        local_values.push($(this).val());
+                    } else {
+                        all_checked = false;
+                    }
+                });
+                var authid = $(this).attr('data-authid');
+                if(all_checked && authid) {
+                    values.push('an:' + authid);
+                } else {
+                    values = values.concat(local_values);
+                }
+            });
+            if(values.length > 0) {
+                var request = "/cgi-bin/koha/opac-search.pl?q=" + values.join(' and ');
+                $("#validSubjectSearch").attr('href', request);
+            } else {
+                $("#validSubjectSearch").removeAttr("href");
+            }
+        }
+        $(document).ready(function() {
+            $("a.showauthors").click(function(){
+                e.preventDefault();
+                showAuthors(this);
+            });
+        });
+
+    //]]>
+    </script>
+[% END # / IF OPACPopupAuthorsSearch  %]
+[% END %]
