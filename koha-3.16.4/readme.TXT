@@ -33,7 +33,12 @@ koha-3.16.4
     cp zh-Hans-TW-modules/detail.tt    
     cp zh-Hans-TW-modules/results.tt
     到
-    intranet/htdocs/intranet-tmpl/prog/zh-Hans-TW/modules/catalogue/    
+    intranet/htdocs/intranet-tmpl/prog/zh-Hans-TW/modules/catalogue/ 
+    
+    cgi
+    cp staff/prog/cgi-bin/catalogue/detail.pl to staff/prog/cgi-bin/catalogue/
+    cp staff/prog/cgi-bin/catalogue/detail.pl to staff/prog/cgi-bin/catalogue/
+       
 4. 豆瓣 staff cgi 處理 z39.50 轉 gb18030
    安裝 debug Data::Dumper & 轉碼 Encode::HanExtra
    cpan Encode::HanExtra Data::Dumper 
