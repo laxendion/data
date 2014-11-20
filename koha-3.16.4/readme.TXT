@@ -1,5 +1,6 @@
 koha-3.16.4 
 1. 新增 Getdouban-0.01 抓豆瓣封面
+    cpan LWP::Simple JSON
     cd Getdouban-0.01 
     perl Makefile.PL
     make
