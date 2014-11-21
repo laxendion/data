@@ -1,5 +1,7 @@
 koha-3.16.4 
-1. 新增 Getdouban-0.01 抓豆瓣封面
+1.  設定 cgi-bin/koha/admin/preferences.pl?tab=enhanced_content
+    AmazonCoverImages , OPACAmazonCoverImages 開啟 
+    新增 Getdouban-0.01 抓豆瓣封面
     cpan LWP::Simple JSON
     cd Getdouban-0.01 
     perl Makefile.PL
@@ -39,16 +41,16 @@ koha-3.16.4
     cgi
     cp staff/prog/cgi-bin/catalogue/detail.pl to staff/prog/cgi-bin/catalogue/
     cp staff/prog/cgi-bin/catalogue/detail.pl to staff/prog/cgi-bin/catalogue/
-       
-4. 豆瓣 staff cgi 處理 z39.50 轉 gb18030
-   安裝 debug Data::Dumper & 轉碼 Encode::HanExtra
-   cpan Encode::HanExtra Data::Dumper 
+        
+4.  豆瓣 staff cgi 處理 z39.50 轉 gb18030
+    安裝 debug Data::Dumper & 轉碼 Encode::HanExtra
+    cpan Encode::HanExtra Data::Dumper 
 
-   cp C4/Breeding.pm 
-   到
-   koha/lib/C4
+    cp C4/Breeding.pm 
+    到
+    koha/lib/C4
 
-5. 處理 zebra 查詢 isbn hyphens 問題
-   cp C4/Koha.pm
-   到
-   koha/lib/C4
+5.  處理 zebra 查詢 isbn hyphens 問題
+    cp C4/Koha.pm
+    到
+    koha/lib/C4
