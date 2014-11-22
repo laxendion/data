@@ -42,10 +42,12 @@ koha-3.18-beta
     cp instranet/cgi-bin/catalogue/detail.pl to instranet/cgi-bin/catalogue/
     cp instranet/cgi-bin/catalogue/search.pl to instranet/cgi-bin/catalogue/
        
-4.  豆瓣 staff cgi 處理 z39.50 轉 gb18030
+4.  處理 z39.50 轉 gb18030
     安裝 debug Data::Dumper & 轉碼 Encode::HanExtra
     cpan Encode::HanExtra Data::Dumper 
 
+    z39.50 server (202.197.127.197 , tcp 210, db cnmarc, sytax UNIMARC, encoding utf8, timeout 60)
+    
     cp C4/Breeding.pm 
     到
     koha/lib/C4
