@@ -1,4 +1,4 @@
-koha-3.18-beta
+koha-3.18
 1.  設定 cgi-bin/koha/admin/preferences.pl?tab=enhanced_content
     AmazonCoverImages , OPACAmazonCoverImages 開啟 
     新增 Getdouban-0.01 抓豆瓣封面
